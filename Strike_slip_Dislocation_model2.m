@@ -4,7 +4,7 @@
 % Misfit analysis between the observed and modelled GPS velocities for strike-slip faults 
 % (Variable: Slip rate, Locking Depth, Fault Dip & Vertical Offset uY)
 
-% Last modified on: 24 Mar, 2025 by D. Panda
+% Last modified on: 17 Mar, 2026 by D. Panda
 
 clear all
 close all
@@ -27,10 +27,10 @@ else
 
     %% Define the variables        
 Fault_slip=sortrows(Fault_slip);
-Fault_slip=sortrows(Fault_slip);
-dist=table2array(Fault_slip(:,1));
+dist=table2array(Fault_slip(:,1))*(-1);
+% dist=table2array(Fault_slip(:,1));
 slip=table2array(Fault_slip(:,2));
-error=table2array(Fault_slip(:,3));
+error=table2array(Fault_slip(:,5));
 plot(dist,slip,'-bdiamond','linewidth',1,'DisplayName','Observed')
 hold on
 errorbar(dist,slip,error,'.b','DisplayName','Observed')
@@ -133,16 +133,18 @@ x=0*y;
 z=0*y;
 
 [uX,uY,uZ]=Okada1992(x,y,z,fault,dip,depth,B,type,Mu,Poisson);
-uY(y>0)=uY(y>0)+(B*cosd(dip1));
-uY=uY+m;
+% uY(y>0)=uY(y>0)+(B*cosd(dip1));
+uX(y<0) = uX(y<0)+(B);
+
+% uY=uY+m;
 
 % RMSE estimation between observed and modelled GPS velocities
 %    RMSE1 = [RMSE1;i/1000,(i/1000)/sind(dip),j,sqrt(mean((slip(:)-uY(:)).^2))];
-    RMSE1 = [RMSE1;i/1000,j,k,m,(1/nobs)*sqrt(sum((slip_new(:)-uY(:)).^2./error_new.^2))];
+    RMSE1 = [RMSE1;i/1000,j,k,m,(1/nobs)*sqrt(sum((slip_new(:)-uX(:)).^2./error_new.^2))];
 
             end
 
-            uY=[];
+            uX=[];
 
         end
     end
@@ -167,8 +169,9 @@ Vert_offset=p1(minError);
 
 figure(1),clf
 [uX,uY,uZ]=Okada1992(x,y,z,fault,dip3,[0,depth2*1e3],slip2,type,Mu,Poisson);
-uY(y>0)=uY(y>0)+(slip2*cosd(dip2));
-plot(y/1e3,uY+Vert_offset,'-bx','linewidth',1,'DisplayName','Modelled')
+% uY(y>0)=uY(y>0)+(slip2*cosd(dip2));
+uX(y<0) = uX(y<0)+(slip2);
+plot(y/1e3,uX+Vert_offset,'-bx','linewidth',1,'DisplayName','Modelled')
 hold on
 errorbar(dist,slip,error,'DisplayName','Observed')
 xlim([-300,300])
@@ -181,9 +184,10 @@ y=linspace(-500e3,500e3,nobs*2);
 x=0*y;
 z=0*y;
 [uX,uY,uZ]=Okada1992(x,y,z,fault,dip3,[0,depth2*1e3],slip2,type,Mu,Poisson);
-uY(y>0)=uY(y>0)+(slip2*cosd(dip2));
+% uY(y>0)=uY(y>0)+(slip2*cosd(dip2));
+uX(y<0) = uX(y<0)+(slip2);
 
-legend(plot(y/1e3,uY+Vert_offset,'g','linewidth',1,'DisplayName','Best Fit'))
+legend(plot(y/1e3,uX+Vert_offset,'g','linewidth',1,'DisplayName','Best Fit'))
 hold on
 errorbar(dist,slip,error,'DisplayName','Observed')
 xlim([-300,300])
