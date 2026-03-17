@@ -7,7 +7,7 @@
 % Input: File must contain three columns (atleast) 
 % Distance from Fault Trace, Displacement, Uncertainity
 
-% Last modified on: 24 Mar, 2025 by D. Panda
+% Last modified on: 17 Mar, 2026 by D. Panda
 
 
 clear all
@@ -28,7 +28,8 @@ else
 
 %% Define the variables        
 Fault_slip=sortrows(Fault_slip);
-dist=table2array(Fault_slip(:,1));
+dist=table2array(Fault_slip(:,1))*(-1);
+% dist=table2array(Fault_slip(:,1));
 slip=table2array(Fault_slip(:,2));
 error=table2array(Fault_slip(:,3));
 plot(dist,slip,'-bdiamond','linewidth',1,'DisplayName','Observed')
@@ -121,7 +122,7 @@ title('Final Observed Displacement (mm/year)')
 % Modify hard coded parameters
 RMSE1 = [];
 type = 'S'; % Type of fault (Dip slip: 'D', Strike slip: 'S')
-dip1 = 10;  % Dip of the fault
+dip1 = 85;  % Dip of the fault
 Mu = 30e9;  % Shear Modulus
 Poisson = 0.25;
 nobs = length(dist_new);    % Number of GPS stations
@@ -130,9 +131,9 @@ slipival = 0.2;    %   Slip rate interval, in mm
 
 fprintf('Estimating RMSE by varying fault slip rate and locking depth...\n')
 tic
-for i = 0:LDival:40000       % Locking depth (in meters)
+for i = 0:LDival:60000       % Locking depth (in meters)
     
-    for j = 0:slipival:25     % Fault slip rate (in mm)
+    for j = 0:slipival:40     % Fault slip rate (in mm)
         
         fault = [-1e9,0;1e9,0];
         dip = (180-dip1)*pi/180;
@@ -143,14 +144,15 @@ for i = 0:LDival:40000       % Locking depth (in meters)
         z = 0*y;
 
         [uX,uY,uZ] = Okada1992(x,y,z,fault,dip,depth,B,type,Mu,Poisson);
-        uY(y>0) = uY(y>0)+(B*cosd(dip1));
+%         uX(y>0) = uY(y>0)-(B*cosd(dip1));
+        uX(y<0) = uX(y<0)+(B);
 
         % RMSE estimation between observed and modelled GPS velocities
         %    RMSE1 = [RMSE1;i/1000,(i/1000)/sind(dip),j,sqrt(mean((slip(:)-uY(:)).^2))];
-        RMSE1 = [RMSE1;i/1000,j,(1/nobs)*sqrt(sum((slip_new(:)-uY(:)).^2./error_new.^2))];
+        RMSE1 = [RMSE1;i/1000,j,(1/nobs)*sqrt(sum((slip_new(:)-uX(:)).^2./error_new.^2))];
     end
 
-    uY=[];
+    uX=[];
 
 end
 toc
@@ -176,12 +178,13 @@ plot(minX,minY,'o','color','red')
 
 figure(4),clf
 [uX,uY,uZ]=Okada1992(x,y,z,fault,dip,[0,minX*1e3],minY,type,Mu,Poisson);
-uY(y>0)=uY(y>0)+(minY*cosd(dip1));
+% uY(y>0)=uY(y>0)+(minY*cosd(dip1));
 % uY=uY+1;
-plot(y/1e3,uY,'-bx','linewidth',1,'DisplayName','Modelled')
+uX(y<0) = uX(y<0)+(minY);
+plot(y/1e3,uX,'-bx','linewidth',1,'DisplayName','Modelled')
 hold on
 errorbar(dist_new,slip_new,error_new,'DisplayName','Observed')
-xlim([-300,300])
+xlim([-500,500])
 legend ('location','northwest')
 
 figure(5),clf
@@ -190,9 +193,10 @@ y=linspace(-500e3,500e3,nobs*2);
 x=0*y;
 z=0*y;
 [uX,uY,uZ]=Okada1992(x,y,z,fault,dip,[0,minX*1e3],minY,type,Mu,Poisson);
-uY(y>0)=uY(y>0)+(minY*cosd(dip1));
+% uY(y>0)=uY(y>0)+(minY*cosd(dip1));
+uX(y<0) = uX(y<0)+(minY);
 
-legend(plot(y/1e3,uY,'g','linewidth',1,'DisplayName','Best Fit'))
+legend(plot(y/1e3,uX,'g','linewidth',1,'DisplayName','Best Fit'))
 hold on
 errorbar(dist_new,slip_new,error_new,'DisplayName','Observed')
 xlim([-300,300])
@@ -214,4 +218,5 @@ fprintf('Saving file: Slip rate deficit curve...Done\n')
 header2={'Distance_km','Slip_mm'}; 
 file2=[header2;num2cell([(x/1000)',uY'])];
 writecell(file2,'SS_Okada_curve.txt');
+
 
